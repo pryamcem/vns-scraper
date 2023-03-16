@@ -26,7 +26,7 @@ func main() {
 	link := flag.String("link", "", "Link to test")
 	login := flag.String("login", "", "VNS login")
 	password := flag.String("password", "", "VNS password")
-	iter := flag.Int("iter", 1, "Iterations to generate dataset")
+	//iter := flag.Int("iter", 1, "Iterations to generate dataset")
 	//dir := flag.String("d", ".", "directory with files to parse")
 	flag.Parse()
 
@@ -41,7 +41,9 @@ func main() {
 	page.MustElement("#password").MustInput(*password)
 	page.MustElement("#loginbtn").MustClick()
 
-	for i := 0; i < *iter; i++ {
+	//page.MustWaitLoad().MustNavigate(*link)
+	for {
+		page.MustWaitLoad().MustNavigate(*link)
 		button := page.MustWaitLoad().MustElementR("button", "Зробити наступну спробу")
 		button.MustClick()
 		//answerTest(*link, page)
@@ -49,35 +51,24 @@ func main() {
 		if err != nil {
 			//log.Fatalln("Test answering error:", err)
 		}
-		finishTest(page, *link)
-	}
-
-	links := findTests(page)
-	var dataset []QA
-	for _, l := range links {
-		p := browser.MustPage(l)
-		//p.MustWaitLoad().MustScreenshot(fmt.Sprintf("%d.png", i))
-		data, err := parseAnswers(p)
-		if err != nil {
-		}
-		for _, d := range data {
-			err := storage.PutQA(d)
+		finishTest(page)
+		if isSuccessful(page) {
+			break
+		} else {
+			data, err := parseAnswers(page)
 			if err != nil {
-				log.Fatalln("Cant insert data to storage:", err)
+				log.Fatalln("Can't parse answers:", err)
+			}
+			for _, d := range data {
+				err := storage.PutQA(d)
+				if err != nil {
+					log.Fatalln("Cant insert data to storage:", err)
+				}
 			}
 		}
-		dataset = append(dataset, data...)
-		p.Close()
-	}
 
-	setSize := len(dataset)
-	dataset = removeDuplicates(dataset)
-	for i := range dataset {
-		fmt.Printf("%s\n%s\n\n", dataset[i].question, dataset[i].rightanswer)
 	}
-	fmt.Println("Set size:", setSize, "Unique: ", len(dataset))
 }
-
 func parseAnswers(page *rod.Page) ([]QA, error) {
 	qtexts := page.MustWaitLoad().MustElements(".qtext")
 	for _, qtext := range qtexts {
@@ -142,7 +133,7 @@ func makeTest(page *rod.Page, s Storage) error {
 	return nil
 }
 
-func finishTest(page *rod.Page, link string) {
+func finishTest(page *rod.Page) {
 	button := page.MustElement("input[type='submit'][value='Завершити спробу...']")
 	button.MustClick()
 	button = page.MustWaitLoad().MustElementR("button", "Відправити все та завершити")
@@ -150,32 +141,18 @@ func finishTest(page *rod.Page, link string) {
 	modal := page.MustElement(".modal-footer")
 	button = modal.MustElementR("button", "Відправити все та завершити")
 	button.MustClick()
-	page.MustWaitLoad()
-	page.MustNavigate(link)
 }
 
-//func answerTest(link string, page *rod.Page, s Storage) error {
-////button := page.MustWaitLoad().MustElementR("button", "Завершити спробу...")
-//button := page.MustElement("input[type='submit'][value='Завершити спробу...']")
-//button.MustClick()
-//button = page.MustWaitLoad().MustElementR("button", "Відправити все та завершити")
-//button.MustClick()
-//modal := page.MustElement(".modal-footer")
-//button = modal.MustElementR("button", "Відправити все та завершити")
-//button.MustClick()
-//page.MustWaitLoad()
-//page.MustNavigate(link)
-//return nil
-//}
+func isSuccessful(page *rod.Page) bool {
+	cells := page.MustWaitLoad().MustElements(".cell")
+	for _, cell := range cells {
+		// Get the inner text of the element
+		text := cell.MustText()
+		fmt.Println(text)
 
-func removeDuplicates(strSlice []QA) []QA {
-	allKeys := make(map[QA]bool)
-	list := []QA{}
-	for _, item := range strSlice {
-		if _, value := allKeys[item]; !value {
-			allKeys[item] = true
-			list = append(list, item)
+		if strings.Contains(text, "(100%)") {
+			return true
 		}
 	}
-	return list
+	return false
 }
