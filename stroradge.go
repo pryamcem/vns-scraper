@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -60,8 +61,13 @@ func (s *Storage) Init() error {
 }
 
 func (s *Storage) PutQA(data QA) error {
+	_, rightanser, ok := strings.Cut(data.rightanswer, "Правильна відповідь: ")
+	if !ok {
+		return errors.New("Anser cut error")
+	}
+	fmt.Println("PUT", rightanser)
 	q := `INSERT OR IGNORE INTO qa (test_num, question, rightanswer) VALUES (?, ?, ?);`
-	_, err := s.db.Exec(q, data.testnum, data.question, data.rightanswer)
+	_, err := s.db.Exec(q, data.testnum, data.question, rightanser)
 	if err != nil {
 		return err
 	}
