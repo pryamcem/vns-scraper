@@ -77,10 +77,10 @@ func (s *Storage) PutQA(data QA) error {
 func (s *Storage) GetRightanswer(question string) (answer string, err error) {
 	q := `SELECT rightanswer FROM qa WHERE question = ? LIMIT 1;`
 	err = s.db.QueryRow(q, question).Scan(&answer)
-	if err == sql.ErrNoRows {
-		return "", errors.New("No questions like that in database.")
-	}
-	if err != nil {
+	//if err == sql.ErrNoRows {
+	//return "", errors.New("No questions like that in database.")
+	//}
+	if err != nil && err != sql.ErrNoRows {
 		return "", err
 	}
 	return answer, nil

@@ -1,9 +1,11 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 
 	"github.com/go-rod/rod"
@@ -40,16 +42,17 @@ func main() {
 	page.MustElement("#username").MustInput(*login)
 	page.MustElement("#password").MustInput(*password)
 	page.MustElement("#loginbtn").MustClick()
-
 	//page.MustWaitLoad().MustNavigate(*link)
+	pageNum, err := findTestNum(page)
+	fmt.Println(pageNum, err)
+
 	for {
 		page.MustWaitLoad().MustNavigate(*link)
 		button := page.MustWaitLoad().MustElementR("button", "Зробити наступну спробу")
 		button.MustClick()
-		//answerTest(*link, page)
 		err := makeTest(page, *storage)
 		if err != nil {
-			//log.Fatalln("Test answering error:", err)
+			log.Fatalln("Test answering error:", err)
 		}
 		finishTest(page)
 		if isSuccessful(page) {
@@ -109,9 +112,7 @@ func makeTest(page *rod.Page, s Storage) error {
 	// Print the inner text of each element
 	for _, element := range tests {
 		question := element.MustElement(".qtext").MustText()
-		fmt.Println("QUESTION", question)
 		rightanswer, err := s.GetRightanswer(question)
-		fmt.Println("RIGHTANSWER", rightanswer)
 		if err != nil {
 			return fmt.Errorf("Can't get rightanswer from storage: %w", err)
 		}
@@ -120,13 +121,9 @@ func makeTest(page *rod.Page, s Storage) error {
 
 		radioBoxes[0].MustClick()
 		for i, a := range answers {
-			fmt.Println("ANSWER", a.MustText())
 			if a.MustText() == rightanswer {
-				fmt.Println("RIGHT")
 				radioBoxes[i].MustClick()
 				break
-			} else {
-				fmt.Println("FALSE", a.MustText(), rightanswer)
 			}
 		}
 	}
@@ -155,4 +152,19 @@ func isSuccessful(page *rod.Page) bool {
 		}
 	}
 	return false
+}
+
+func findTestNum(page *rod.Page) (int, error) {
+	page.MustWaitLoad()
+
+	// find all <h2> elements on the page and loop through them
+	h2Elements := page.MustElements("h2")
+	for _, h2 := range h2Elements {
+		text := h2.MustText()
+		if strings.Contains(text, "Тест") {
+			strs := strings.Fields(text)
+			return strconv.Atoi(strs[1])
+		}
+	}
+	return 0, errors.New("Cant't find test number on page")
 }
