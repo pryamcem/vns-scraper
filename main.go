@@ -12,18 +12,11 @@ import (
 )
 
 type QA struct {
-	testnum     int
 	question    string
 	rightanswer string
 }
 
 func main() {
-	storage, err := New("tests.db")
-	err = storage.Init()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	defer storage.Close()
 
 	link := flag.String("link", "", "Link to test")
 	login := flag.String("login", "", "VNS login")
@@ -43,14 +36,19 @@ func main() {
 	page.MustElement("#password").MustInput(*password)
 	page.MustElement("#loginbtn").MustClick()
 	//page.MustWaitLoad().MustNavigate(*link)
-	pageNum, err := findTestNum(page)
-	fmt.Println(pageNum, err)
+	testNum, err := findTestNum(page)
+	storage, err := New("tests.db")
+	err = storage.InitByNum(testNum)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	defer storage.Close()
 
 	for {
 		page.MustWaitLoad().MustNavigate(*link)
 		button := page.MustWaitLoad().MustElementR("button", "Зробити наступну спробу")
 		button.MustClick()
-		err := makeTest(page, *storage)
+		err := makeTest(page, testNum, *storage)
 		if err != nil {
 			log.Fatalln("Test answering error:", err)
 		}
@@ -63,7 +61,7 @@ func main() {
 				log.Fatalln("Can't parse answers:", err)
 			}
 			for _, d := range data {
-				err := storage.PutQA(d)
+				err := storage.PutQA(testNum, d)
 				if err != nil {
 					log.Fatalln("Cant insert data to storage:", err)
 				}
@@ -105,14 +103,14 @@ func findTests(page *rod.Page) []string {
 	return links
 }
 
-func makeTest(page *rod.Page, s Storage) error {
+func makeTest(page *rod.Page, testNum int, s Storage) error {
 	page.MustWaitLoad()
 	tests := page.MustElements(".formulation.clearfix")
 
 	// Print the inner text of each element
 	for _, element := range tests {
 		question := element.MustElement(".qtext").MustText()
-		rightanswer, err := s.GetRightanswer(question)
+		rightanswer, err := s.GetRightanswer(testNum, question)
 		if err != nil {
 			return fmt.Errorf("Can't get rightanswer from storage: %w", err)
 		}

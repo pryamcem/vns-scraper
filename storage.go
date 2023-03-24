@@ -13,9 +13,8 @@ type Storage struct {
 	db *sql.DB
 }
 
-var dbschema = ` CREATE TABLE IF NOT EXISTS qa (
+var dbschema = ` CREATE TABLE IF NOT EXISTS test_%d (
 id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-test_num INTEGER,
 question TEXT, 
 rightanswer TEXT,
 UNIQUE(question, rightanswer)
@@ -46,9 +45,9 @@ func (s *Storage) Close() {
 }
 
 // Init schama
-func (s *Storage) Init() error {
+func (s *Storage) InitByNum(testNum int) error {
 	// Exec schema.
-	_, err := s.db.Exec(dbschema)
+	_, err := s.db.Exec(fmt.Sprintf(dbschema, testNum))
 	if err != nil {
 		return fmt.Errorf("Can't create tables: %w", err)
 	}
@@ -60,23 +59,23 @@ func (s *Storage) Init() error {
 	return nil
 }
 
-func (s *Storage) PutQA(data QA) error {
+func (s *Storage) PutQA(testNum int, data QA) error {
 	_, rightanser, ok := strings.Cut(data.rightanswer, "Правильна відповідь: ")
 	if !ok {
 		return errors.New("Anser cut error")
 	}
 	fmt.Println("PUT", rightanser)
-	q := `INSERT OR IGNORE INTO qa (test_num, question, rightanswer) VALUES (?, ?, ?);`
-	_, err := s.db.Exec(q, data.testnum, data.question, rightanser)
+	q := `INSERT OR IGNORE INTO test_%d (question, rightanswer) VALUES ( ?, ?);`
+	_, err := s.db.Exec(fmt.Sprintf(q, testNum), data.question, rightanser)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *Storage) GetRightanswer(question string) (answer string, err error) {
-	q := `SELECT rightanswer FROM qa WHERE question = ? LIMIT 1;`
-	err = s.db.QueryRow(q, question).Scan(&answer)
+func (s *Storage) GetRightanswer(testNum int, question string) (answer string, err error) {
+	q := `SELECT rightanswer FROM test_%d WHERE question = ? LIMIT 1;`
+	err = s.db.QueryRow(fmt.Sprintf(q, testNum), question).Scan(&answer)
 	//if err == sql.ErrNoRows {
 	//return "", errors.New("No questions like that in database.")
 	//}
