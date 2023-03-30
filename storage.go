@@ -13,19 +13,18 @@ type Storage struct {
 	db *sql.DB
 }
 
-var dbschema = ` CREATE TABLE IF NOT EXISTS test_%d (
+const (
+	dbschema = ` CREATE TABLE IF NOT EXISTS test_%d (
 id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 question TEXT, 
 rightanswer TEXT,
 UNIQUE(question, rightanswer)
 );`
 
-// TODO: create table for each test or create another table which contains number of tables with tests
-//CREATE TABLE IF NOT EXISTS tests (
+	dbconfig = `PRAGMA foreign_keys = ON`
+)
 
-//)`
-
-var dbconfig = `PRAGMA foreign_keys = ON`
+var ErrNoSavedQA = errors.New("This question is not exists in databese")
 
 // New creates new SQLite storage.
 func New(path string) (*Storage, error) {
@@ -44,7 +43,7 @@ func (s *Storage) Close() {
 	s.db.Close()
 }
 
-// Init schama
+// Init schema
 func (s *Storage) InitByNum(testNum int) error {
 	// Exec schema.
 	_, err := s.db.Exec(fmt.Sprintf(dbschema, testNum))
@@ -73,11 +72,11 @@ func (s *Storage) PutQA(testNum int, data QA) error {
 	return nil
 }
 
-func (s *Storage) GetRightanswer(testNum int, question string) (answer string, err error) {
+func (s *Storage) PickRightanswer(testNum int, question string) (answer string, err error) {
 	q := `SELECT rightanswer FROM test_%d WHERE question = ? LIMIT 1;`
 	err = s.db.QueryRow(fmt.Sprintf(q, testNum), question).Scan(&answer)
 	//if err == sql.ErrNoRows {
-	//return "", errors.New("No questions like that in database.")
+	//return "", ErrNoSavedQA
 	//}
 	if err != nil && err != sql.ErrNoRows {
 		return "", err
