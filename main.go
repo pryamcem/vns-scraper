@@ -1,13 +1,11 @@
 package main
 
 import (
-	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/go-rod/rod"
 )
@@ -46,10 +44,6 @@ func GetConfig(path string) Configuration {
 
 func main() {
 	link := flag.String("link", "", "Link to test")
-	//login := flag.String("login", "", "VNS login")
-	//password := flag.String("password", "", "VNS password")
-	//iter := flag.Int("iter", 1, "Iterations to generate dataset")
-	//dir := flag.String("d", ".", "directory with files to parse")
 	flag.Parse()
 
 	config := GetConfig(configPath)
@@ -65,7 +59,8 @@ func main() {
 	page.MustElement("#password").MustInput(config.Password)
 	page.MustElement("#loginbtn").MustClick()
 	//page.MustWaitLoad().MustNavigate(*link)
-	testNum, err := findTestNum(page)
+	//testNum := mustFindTestNum(page)
+	testNum := 5
 	storage, err := New("tests.db")
 	err = storage.InitByNum(testNum)
 	if err != nil {
@@ -75,12 +70,10 @@ func main() {
 
 	for {
 		page.MustWaitLoad().MustNavigate(*link)
-		button := page.MustWaitLoad().
-			Timeout(1*time.Second).MustElementR("button", "Спроба тесту").
-			CancelTimeout().
-			Timeout(1*time.Second).MustElementR("button", "Зробити наступну спробу").
-			CancelTimeout().
-			Timeout(1*time.Second).MustElementR("button", "Продовжуйте свою спробу")
+		button := page.MustWaitLoad().MustElementR("button", "Зробити наступну спробу")
+		//Timeout(1*time.Second).MustElementR("button", "Спроба тесту").
+		//CancelTimeout().
+		//Timeout(1*time.Second).MustElementR("button", "Продовжуйте свою спробу")
 		button.MustClick()
 		err := makeTest(page, testNum, *storage)
 		if err != nil {
@@ -104,6 +97,7 @@ func main() {
 
 	}
 }
+
 func parseAnswers(page *rod.Page) ([]QA, error) {
 	qtexts := page.MustWaitLoad().MustElements(".qtext")
 	for _, qtext := range qtexts {
@@ -186,7 +180,7 @@ func isSuccessful(page *rod.Page) bool {
 	return false
 }
 
-func findTestNum(page *rod.Page) (int, error) {
+func mustFindTestNum(page *rod.Page) int {
 	page.MustWaitLoad()
 
 	// find all <h2> elements on the page and loop through them
@@ -195,8 +189,12 @@ func findTestNum(page *rod.Page) (int, error) {
 		text := h2.MustText()
 		if strings.Contains(text, "Тест") {
 			strs := strings.Fields(text)
-			return strconv.Atoi(strs[1])
+			num, err := strconv.Atoi(strs[1])
+			if err != nil {
+				panic(err)
+			}
+			return num
 		}
 	}
-	return 0, errors.New("Cant't find test number on page")
+	panic("Can't find test number")
 }

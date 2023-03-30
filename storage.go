@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -82,4 +83,41 @@ func (s *Storage) PickRightanswer(testNum int, question string) (answer string, 
 		return "", err
 	}
 	return answer, nil
+}
+
+func (s *Storage) ParseToFile(testNum int) error {
+	//Create file
+	path := fmt.Sprintf("answers/test_%d.txt", testNum)
+	file, err := os.Create(path)
+	if err != nil {
+		return fmt.Errorf("Cant't create file: %w", err)
+	}
+	defer file.Close()
+
+	//Get data from database
+	qa := QA{}
+	q := `SELECT question, rightanswer FROM test_%d;`
+	rows, err := s.db.Query(fmt.Sprintf(q, testNum))
+	if err != nil {
+		return fmt.Errorf("Cant't get data from database: %w", err)
+	}
+	defer rows.Close()
+
+	//Write row by row query resoult to file
+	for rows.Next() {
+		//Scan row to structure
+		err = rows.Scan(&qa.question, &qa.rightanswer)
+		if err != nil {
+			return fmt.Errorf("Dow scanning error: %w", err)
+		}
+
+		//Format and write data
+		data := fmt.Sprintf("Question: %s\nRightanswer: %s\n\n", qa.question, qa.rightanswer)
+		fmt.Println(data)
+		_, err = file.WriteString(data)
+		if err != nil {
+			return fmt.Errorf("Cant't write string to file: %w", err)
+		}
+	}
+	return nil
 }
