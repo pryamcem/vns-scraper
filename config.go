@@ -51,3 +51,26 @@ func NewConfig(path string, config Configuration) error {
 	}
 	return nil
 }
+
+// GetConfig tries to read the config from json file.
+// Otherwise GetConfig asks the user about his data.
+func GetConfig(path string) Configuration {
+	err, config := ReadConfig(path)
+	if err != nil {
+		var login, password string
+		fmt.Print("Enter your VNS login: ")
+		fmt.Scan(&login)
+		fmt.Print("Enter your VNS password: ")
+		fmt.Scan(&password)
+		config = Configuration{
+			Login:    login,
+			Password: password,
+		}
+		err = NewConfig(path, config)
+		if err != nil {
+			//TODO: provide better error handling
+			fmt.Println(err)
+		}
+	}
+	return config
+}

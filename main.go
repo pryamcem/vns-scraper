@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 
 	"github.com/go-rod/rod"
@@ -19,29 +18,6 @@ type QA struct {
 	rightanswer string
 }
 
-// GetConfig tries to read the config from json file.
-// Otherwise GetConfig asks the user about his data.
-func GetConfig(path string) Configuration {
-	err, config := ReadConfig(path)
-	if err != nil {
-		var login, password string
-		fmt.Print("Enter your VNS login: ")
-		fmt.Scan(&login)
-		fmt.Print("Enter your VNS password: ")
-		fmt.Scan(&password)
-		config = Configuration{
-			Login:    login,
-			Password: password,
-		}
-		err = NewConfig(path, config)
-		if err != nil {
-			//TODO: provide better error handling
-			fmt.Println(err)
-		}
-	}
-	return config
-}
-
 func main() {
 	link := flag.String("link", "", "Link to test")
 	flag.Parse()
@@ -51,23 +27,22 @@ func main() {
 	// Create new browser.
 	browser := rod.New().MustConnect()
 	defer browser.Close()
-
-	// Login to VNS by lign and password from flags.
-	// TODO: Move login to separete function wich return error if login unsucsessfull.
 	page := browser.MustPage(*link)
-	page.MustElement("#username").MustInput(config.Login)
-	page.MustElement("#password").MustInput(config.Password)
-	page.MustElement("#loginbtn").MustClick()
-	//page.MustWaitLoad().MustNavigate(*link)
-	//testNum := mustFindTestNum(page)
-	testNum := 5
-	storage, err := New("tests.db")
-	err = storage.InitByNum(testNum)
+
+	err := Login(page, config)
 	if err != nil {
 		log.Fatalln(err)
 	}
+	testNum := mustFindTestNum(page)
+	storage, err := New("tests.db")
+	err = storage.InitByNum(testNum)
+	if err != nil {
+		log.Fatalf("Login error: %v", err)
+	}
 	defer storage.Close()
+	//storage.ParseToFile(7)
 
+	i := 0
 	for {
 		page.MustWaitLoad().MustNavigate(*link)
 		button := page.MustWaitLoad().MustElementR("button", "Зробити наступну спробу")
@@ -80,9 +55,13 @@ func main() {
 			log.Fatalln("Test answering error:", err)
 		}
 		finishTest(page)
-		if isSuccessful(page) {
-			break
+		if isTestSuccessful(page) {
+			i++
+			if i == 10 {
+				break
+			}
 		} else {
+			i = 0
 			data, err := parseAnswers(page)
 			if err != nil {
 				log.Fatalln("Can't parse answers:", err)
@@ -94,7 +73,6 @@ func main() {
 				}
 			}
 		}
-
 	}
 }
 
@@ -166,7 +144,7 @@ func finishTest(page *rod.Page) {
 	button.MustClick()
 }
 
-func isSuccessful(page *rod.Page) bool {
+func isTestSuccessful(page *rod.Page) bool {
 	cells := page.MustWaitLoad().MustElements(".cell")
 	for _, cell := range cells {
 		// Get the inner text of the element
@@ -178,23 +156,4 @@ func isSuccessful(page *rod.Page) bool {
 		}
 	}
 	return false
-}
-
-func mustFindTestNum(page *rod.Page) int {
-	page.MustWaitLoad()
-
-	// find all <h2> elements on the page and loop through them
-	h2Elements := page.MustElements("h2")
-	for _, h2 := range h2Elements {
-		text := h2.MustText()
-		if strings.Contains(text, "Тест") {
-			strs := strings.Fields(text)
-			num, err := strconv.Atoi(strs[1])
-			if err != nil {
-				panic(err)
-			}
-			return num
-		}
-	}
-	panic("Can't find test number")
 }

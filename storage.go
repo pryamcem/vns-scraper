@@ -113,7 +113,6 @@ func (s *Storage) ParseToFile(testNum int) error {
 
 		//Format and write data
 		data := fmt.Sprintf("Question: %s\nRightanswer: %s\n\n", qa.question, qa.rightanswer)
-		fmt.Println(data)
 		_, err = file.WriteString(data)
 		if err != nil {
 			return fmt.Errorf("Cant't write string to file: %w", err)
