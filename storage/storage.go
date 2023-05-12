@@ -5,17 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"strings"
 
 	_ "github.com/mattn/go-sqlite3"
 )
 
 type Storage struct {
 	db *sql.DB
-}
-
-type QA struct {
-	question, rightanswer string
 }
 
 const (
@@ -46,8 +41,8 @@ func (s *Storage) Close() {
 	s.db.Close()
 }
 
-// SchemaByNum creates table with specific number.
-func (s *Storage) SchemaByNum(testNum int) error {
+// CreateSchemaByNum creates table with specific number.
+func (s *Storage) CreateSchemaByNum(testNum int) error {
 	// Exec schema.
 	_, err := s.db.Exec(fmt.Sprintf(dbschema, testNum))
 	if err != nil {
@@ -56,21 +51,17 @@ func (s *Storage) SchemaByNum(testNum int) error {
 	return nil
 }
 
-// TODO: move strings.Cut() to scruper
-func (s *Storage) PutQA(testNum int, question, rightanswer string) error {
-	_, answer, ok := strings.Cut(rightanswer, "Правильна відповідь: ")
-	if !ok {
-		return errors.New("Anser cut error")
-	}
-	fmt.Println("PUT", rightanswer)
+// Put question and rightanswer to table test_<testNum>
+func (s *Storage) Put(testNum int, question, rightanswer string) error {
 	q := `INSERT OR IGNORE INTO test_%d (question, rightanswer) VALUES ( ?, ?);`
-	_, err := s.db.Exec(fmt.Sprintf(q, testNum), question, answer)
+	_, err := s.db.Exec(fmt.Sprintf(q, testNum), question, rightanswer)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+// PickRightanswer by question from storage.
 func (s *Storage) PickRightanswer(testNum int, question string) (answer string, err error) {
 	q := `SELECT rightanswer FROM test_%d WHERE question = ? LIMIT 1;`
 	err = s.db.QueryRow(fmt.Sprintf(q, testNum), question).Scan(&answer)
@@ -83,6 +74,7 @@ func (s *Storage) PickRightanswer(testNum int, question string) (answer string, 
 	return answer, nil
 }
 
+// Export whole table test_<testNum> to file
 func (s *Storage) ParseToFile(testNum int) error {
 	//Create file
 	path := fmt.Sprintf("answers/test_%d.txt", testNum)
@@ -93,7 +85,6 @@ func (s *Storage) ParseToFile(testNum int) error {
 	defer file.Close()
 
 	//Get data from database
-	qa := QA{}
 	q := `SELECT question, rightanswer FROM test_%d;`
 	rows, err := s.db.Query(fmt.Sprintf(q, testNum))
 	if err != nil {
@@ -102,15 +93,16 @@ func (s *Storage) ParseToFile(testNum int) error {
 	defer rows.Close()
 
 	//Write row by row query resoult to file
+	var question, rightanswer string
 	for rows.Next() {
 		//Scan row to structure
-		err = rows.Scan(&qa.question, &qa.rightanswer)
+		err = rows.Scan(question, rightanswer)
 		if err != nil {
 			return fmt.Errorf("Dow scanning error: %w", err)
 		}
 
 		//Format and write data
-		data := fmt.Sprintf("Question: %s\nRightanswer: %s\n\n", qa.question, qa.rightanswer)
+		data := fmt.Sprintf("Question: %s\nRightanswer: %s\n\n", question, rightanswer)
 		_, err = file.WriteString(data)
 		if err != nil {
 			return fmt.Errorf("Cant't write string to file: %w", err)

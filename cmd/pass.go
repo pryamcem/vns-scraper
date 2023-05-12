@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	"github.com/go-rod/rod"
@@ -52,7 +53,7 @@ func pass(_ *cobra.Command, args []string) {
 		log.Fatalln("Can't login: ", err)
 	}
 	testNum := scruper.MustFindTestNum(page)
-	err = storage.SchemaByNum(testNum)
+	err = storage.CreateSchemaByNum(testNum)
 	if err != nil {
 		log.Fatalf("Cant't create table schema: %v", err)
 	}
@@ -89,7 +90,12 @@ func pass(_ *cobra.Command, args []string) {
 				log.Fatalln("Can't parse answers:", err)
 			}
 			for _, d := range data {
-				err := storage.PutQA(testNum, d.Question, d.Rightanswer)
+				_, rightanswerFormated, ok := strings.Cut(d.Rightanswer, "Правильна відповідь: ")
+				if !ok {
+					log.Fatalln("Can't format answer")
+				}
+
+				err := storage.Put(testNum, d.Question, rightanswerFormated)
 				if err != nil {
 					log.Fatalln("Cant insert data to storage:", err)
 				}
