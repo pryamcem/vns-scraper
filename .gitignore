@@ -1,3 +1,4 @@
 *.db
 VNS-scraper
 config.json
+bin/

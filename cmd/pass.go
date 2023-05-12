@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/launcher"
 	"github.com/pryamcem/VNS-scraper/config"
 	"github.com/pryamcem/VNS-scraper/scruper"
 	"github.com/pryamcem/VNS-scraper/storage"
@@ -30,10 +31,16 @@ func pass(_ *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("Storage initialization error: %v", err)
 	}
-	_, _, _ = link, config, storage
 
 	// Create new browser.
-	browser := rod.New().MustConnect()
+	l := launcher.New().
+		Headless(false).
+		Devtools(false)
+
+	defer l.Cleanup()
+	url := l.MustLaunch()
+
+	browser := rod.New().ControlURL(url).Trace(true).MustConnect()
 	defer browser.Close()
 
 	//cmd.Execute()
@@ -42,7 +49,7 @@ func pass(_ *cobra.Command, args []string) {
 
 	err = scruper.Login(page, config)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("Can't login: ", err)
 	}
 	testNum := scruper.MustFindTestNum(page)
 	err = storage.SchemaByNum(testNum)
@@ -57,9 +64,12 @@ func pass(_ *cobra.Command, args []string) {
 	trustValue := 10
 	for {
 		page.MustWaitLoad().MustNavigate(link)
-		button, err := page.MustWaitLoad().Timeout(time.Second).ElementR("button", "Спроба тесту")
+		button, err := page.MustWaitLoad().Timeout(time.Second).ElementR("button", "Зробити наступну спробу")
 		if err != nil {
-			button, err = page.MustWaitLoad().Timeout(time.Second).ElementR("button", "Зробити наступну спробу")
+			button, err = page.MustWaitLoad().Timeout(time.Second).ElementR("button", "Спроба тесту")
+			if err != nil {
+				button, err = page.MustWaitLoad().Timeout(time.Second).ElementR("button", "Продовжуйте свою спробу")
+			}
 		}
 		button.MustClick()
 		err = scruper.MakeTest(page, testNum, *storage)
