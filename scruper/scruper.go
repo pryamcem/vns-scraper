@@ -2,6 +2,7 @@ package scruper
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 	"strings"
 	"time"
@@ -59,6 +60,18 @@ func MustFindTestNum(page *rod.Page) int {
 	panic("Can't find test number")
 }
 
+func StartNextAttempt(page *rod.Page) error {
+	button, err := page.MustWaitLoad().Timeout(time.Second).ElementR("button", "Зробити наступну спробу")
+	if err != nil {
+		button, err = page.MustWaitLoad().Timeout(time.Second).ElementR("button", "Спроба тесту")
+		if err != nil {
+			button, err = page.MustWaitLoad().Timeout(time.Second).ElementR("button", "Продовжуйте свою спробу")
+		}
+	}
+	button.MustClick()
+	return nil
+}
+
 // fundTests return list of links with title='Переглянути ваші відповіді в цій спробі'
 func FindTests(page *rod.Page) []string {
 	var links []string
@@ -97,18 +110,21 @@ func MakeTest(page *rod.Page, testNum int, s storage.Storage) error {
 }
 
 // finishTest finds and clicks all nesesary buttons to complete test.
-func FinishTest(page *rod.Page) {
-	//button, err := page.Timeout(time.Second).Element("input[type='submit'][value='Наступна сторінка']")
-	//if err != nil {
-	button := page.MustElement("input[type='submit'][value='Завершити спробу...']")
+func FinishTest(page *rod.Page) (error, bool) {
+	page.MustWaitLoad()
+	button, err := page.Timeout(time.Second).Element("input[type='submit'][value='Наступна сторінка']")
+	if err != nil {
+		button := page.MustElement("input[type='submit'][value='Завершити спробу...']")
+		button.MustClick()
+		button = page.MustWaitLoad().MustElementR("button", "Відправити все та завершити")
+		button.MustClick()
+		modal := page.MustElement(".modal-footer")
+		button = modal.MustElementR("button", "Відправити все та завершити")
+		button.MustClick()
+		return nil, true
+	}
 	button.MustClick()
-	button = page.MustWaitLoad().MustElementR("button", "Відправити все та завершити")
-	button.MustClick()
-	modal := page.MustElement(".modal-footer")
-	button = modal.MustElementR("button", "Відправити все та завершити")
-	button.MustClick()
-	//}
-	//button.MustClick()
+	return nil, false
 }
 
 // isTestSuccessful checks rate of correct answers.
@@ -131,13 +147,13 @@ func IsTestSuccessful(page *rod.Page) bool {
 func ParseAnswers(page *rod.Page) ([]QA, error) {
 	qtexts := page.MustWaitLoad().MustElements(".qtext")
 	for _, qtext := range qtexts {
-		fmt.Println("Question Text:", qtext.MustText())
+		log.Println("Question Text:", qtext.MustText())
 	}
 
 	// Find all elements with the class "Rightanswer"
-	rightanswers := page.MustElements(".Rightanswer")
+	rightanswers := page.MustElements(".rightanswer")
 	for _, Rightanswer := range rightanswers {
-		fmt.Println("Right Answer:", Rightanswer.MustText())
+		log.Println("Right Answer:", Rightanswer.MustText())
 	}
 	var data []QA
 	for i := range qtexts {

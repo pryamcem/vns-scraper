@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -14,7 +15,7 @@ type Storage struct {
 }
 
 const (
-	dbschema = ` CREATE TABLE IF NOT EXISTS test_%d (
+	tableSchema = ` CREATE TABLE IF NOT EXISTS test_%d (
 id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
 question TEXT, 
 rightanswer TEXT,
@@ -42,9 +43,9 @@ func (s *Storage) Close() {
 }
 
 // CreateSchemaByNum creates table with specific number.
-func (s *Storage) CreateSchemaByNum(testNum int) error {
+func (s *Storage) CreateTableByNum(testNum int) error {
 	// Exec schema.
-	_, err := s.db.Exec(fmt.Sprintf(dbschema, testNum))
+	_, err := s.db.Exec(fmt.Sprintf(tableSchema, testNum))
 	if err != nil {
 		return fmt.Errorf("Can't create tables: %w", err)
 	}
@@ -74,7 +75,6 @@ func (s *Storage) PickRightanswer(testNum int, question string) (answer string, 
 	return answer, nil
 }
 
-// Export whole table test_<testNum> to file
 func (s *Storage) ParseToFile(testNum int) error {
 	//Create file
 	path := fmt.Sprintf("answers/test_%d.txt", testNum)
@@ -83,30 +83,28 @@ func (s *Storage) ParseToFile(testNum int) error {
 		return fmt.Errorf("Cant't create file: %w", err)
 	}
 	defer file.Close()
-
-	//Get data from database
-	q := `SELECT question, rightanswer FROM test_%d;`
-	rows, err := s.db.Query(fmt.Sprintf(q, testNum))
+	// Query the database for all rows in the "test_11" table.
+	rows, err := s.db.Query("SELECT question, rightanswer FROM test_11")
 	if err != nil {
-		return fmt.Errorf("Cant't get data from database: %w", err)
+		log.Fatal(err)
 	}
 	defer rows.Close()
 
-	//Write row by row query resoult to file
+	// Write each row to the output file.
 	var question, rightanswer string
 	for rows.Next() {
-		//Scan row to structure
-		err = rows.Scan(question, rightanswer)
-		if err != nil {
-			return fmt.Errorf("Dow scanning error: %w", err)
+		if err := rows.Scan(&question, &rightanswer); err != nil {
+			log.Fatal(err)
 		}
+		_, err := fmt.Fprintf(file, "Question: %s\nRightanswer: %s\n\n", question, rightanswer)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 
-		//Format and write data
-		data := fmt.Sprintf("Question: %s\nRightanswer: %s\n\n", question, rightanswer)
-		_, err = file.WriteString(data)
-		if err != nil {
-			return fmt.Errorf("Cant't write string to file: %w", err)
-		}
+	// Check for any errors encountered while iterating over rows.
+	if err := rows.Err(); err != nil {
+		log.Fatal(err)
 	}
 	return nil
 }

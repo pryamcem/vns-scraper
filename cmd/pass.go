@@ -3,7 +3,6 @@ package cmd
 import (
 	"log"
 	"strings"
-	"time"
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
@@ -32,11 +31,12 @@ func pass(_ *cobra.Command, args []string) {
 	if err != nil {
 		log.Fatalf("Storage initialization error: %v", err)
 	}
+	defer storage.Close()
 
 	// Create new browser.
 	l := launcher.New().
 		Headless(false).
-		Devtools(false)
+		Devtools(true)
 
 	defer l.Cleanup()
 	url := l.MustLaunch()
@@ -53,31 +53,31 @@ func pass(_ *cobra.Command, args []string) {
 		log.Fatalln("Can't login: ", err)
 	}
 	testNum := scruper.MustFindTestNum(page)
-	err = storage.CreateSchemaByNum(testNum)
+	err = storage.CreateTableByNum(testNum)
 	if err != nil {
 		log.Fatalf("Cant't create table schema: %v", err)
 	}
 
-	//storage.ParseToFile(10)
-	//return
-
 	i := 0
 	trustValue := 10
 	for {
+		//Go to the test link
 		page.MustWaitLoad().MustNavigate(link)
-		button, err := page.MustWaitLoad().Timeout(time.Second).ElementR("button", "Зробити наступну спробу")
+
+		err := scruper.StartNextAttempt(page)
 		if err != nil {
-			button, err = page.MustWaitLoad().Timeout(time.Second).ElementR("button", "Спроба тесту")
+			log.Fatalln("Error while startin new attempt:", err)
+		}
+
+		isLastPage := false
+		for !isLastPage {
+			err = scruper.MakeTest(page, testNum, *storage)
 			if err != nil {
-				button, err = page.MustWaitLoad().Timeout(time.Second).ElementR("button", "Продовжуйте свою спробу")
+				log.Fatalln("Error while making test: ", err)
 			}
+			_, isLastPage = scruper.FinishTest(page)
 		}
-		button.MustClick()
-		err = scruper.MakeTest(page, testNum, *storage)
-		if err != nil {
-			log.Fatalln("Test answering error:", err)
-		}
-		scruper.FinishTest(page)
+
 		if scruper.IsTestSuccessful(page) {
 			i++
 			if i == trustValue {
