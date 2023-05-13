@@ -7,9 +7,9 @@ import (
 
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
-	"github.com/pryamcem/VNS-scraper/config"
-	"github.com/pryamcem/VNS-scraper/scruper"
-	"github.com/pryamcem/VNS-scraper/storage"
+	"github.com/pryamcem/vns-scraper/config"
+	"github.com/pryamcem/vns-scraper/scruper"
+	"github.com/pryamcem/vns-scraper/storage"
 	"github.com/spf13/cobra"
 )
 

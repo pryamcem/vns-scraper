@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/go-rod/rod"
-	"github.com/pryamcem/VNS-scraper/config"
-	"github.com/pryamcem/VNS-scraper/storage"
+	"github.com/pryamcem/vns-scraper/config"
+	"github.com/pryamcem/vns-scraper/storage"
 )
 
 type QA struct {
@@ -98,6 +98,8 @@ func MakeTest(page *rod.Page, testNum int, s storage.Storage) error {
 
 // finishTest finds and clicks all nesesary buttons to complete test.
 func FinishTest(page *rod.Page) {
+	//button, err := page.Timeout(time.Second).Element("input[type='submit'][value='Наступна сторінка']")
+	//if err != nil {
 	button := page.MustElement("input[type='submit'][value='Завершити спробу...']")
 	button.MustClick()
 	button = page.MustWaitLoad().MustElementR("button", "Відправити все та завершити")
@@ -105,6 +107,8 @@ func FinishTest(page *rod.Page) {
 	modal := page.MustElement(".modal-footer")
 	button = modal.MustElementR("button", "Відправити все та завершити")
 	button.MustClick()
+	//}
+	//button.MustClick()
 }
 
 // isTestSuccessful checks rate of correct answers.

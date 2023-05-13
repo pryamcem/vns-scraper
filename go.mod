@@ -1,4 +1,4 @@
-module github.com/pryamcem/VNS-scraper
+module github.com/pryamcem/vns-scraper
 
 go 1.20
 

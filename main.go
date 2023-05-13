@@ -1,6 +1,6 @@
 package main
 
-import "github.com/pryamcem/VNS-scraper/cmd"
+import "github.com/pryamcem/vns-scraper/cmd"
 
 func main() {
 	cmd.Execute()
