@@ -84,7 +84,7 @@ func (s *Storage) ParseToFile(testNum int) error {
 	}
 	defer file.Close()
 	// Query the database for all rows in the "test_11" table.
-	rows, err := s.db.Query("SELECT question, rightanswer FROM test_11")
+	rows, err := s.db.Query(fmt.Sprintf("SELECT question, rightanswer FROM test_%d", testNum))
 	if err != nil {
 		log.Fatal(err)
 	}
