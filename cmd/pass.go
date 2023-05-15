@@ -44,8 +44,6 @@ func pass(_ *cobra.Command, args []string) {
 	browser := rod.New().ControlURL(url).Trace(true).MustConnect()
 	defer browser.Close()
 
-	//cmd.Execute()
-
 	page := browser.MustPage(link)
 
 	err = scruper.Login(page, config)
