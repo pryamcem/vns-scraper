@@ -10,8 +10,7 @@ var rootCmd = &cobra.Command{
 
 // TODO: provide better error handling.
 func Execute() {
-	rootCmd.AddCommand(passCmd)
-	rootCmd.AddCommand(saveCmd)
+	rootCmd.AddCommand(passCmd, saveCmd, scanCmd)
 	err := rootCmd.Execute()
 	if err != nil {
 		panic(err)

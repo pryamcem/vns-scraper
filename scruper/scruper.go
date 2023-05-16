@@ -72,7 +72,7 @@ func StartNextAttempt(page *rod.Page) error {
 	return nil
 }
 
-// fundTests return list of links with title='Переглянути ваші відповіді в цій спробі'
+// FindTests return list of links with title='Переглянути ваші відповіді в цій спробі'
 func FindTests(page *rod.Page) []string {
 	var links []string
 	elements := page.MustWaitLoad().MustElements("a[title='Переглянути ваші відповіді в цій спробі']")
