@@ -76,6 +76,13 @@ func (s *Storage) PickRightanswer(testNum int, question string) (answer string, 
 }
 
 func (s *Storage) ParseToFile(testNum int) error {
+	// Query the database for all rows in the "test_11" table.
+	rows, err := s.db.Query(fmt.Sprintf("SELECT question, rightanswer FROM test_%d", testNum))
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer rows.Close()
+
 	//Create file
 	path := fmt.Sprintf("answers/test_%d.txt", testNum)
 	file, err := os.Create(path)
@@ -83,12 +90,6 @@ func (s *Storage) ParseToFile(testNum int) error {
 		return fmt.Errorf("Cant't create file: %w", err)
 	}
 	defer file.Close()
-	// Query the database for all rows in the "test_11" table.
-	rows, err := s.db.Query(fmt.Sprintf("SELECT question, rightanswer FROM test_%d", testNum))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer rows.Close()
 
 	// Write each row to the output file.
 	var question, rightanswer string
