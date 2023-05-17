@@ -8,12 +8,37 @@ import (
 	"time"
 
 	"github.com/go-rod/rod"
+	"github.com/go-rod/rod/lib/launcher"
 	"github.com/pryamcem/vns-scraper/config"
 	"github.com/pryamcem/vns-scraper/storage"
 )
 
+type Scruper struct {
+	browser *rod.Browser
+	page    *rod.Page
+}
+
 type QA struct {
 	Question, Rightanswer string
+}
+
+func New() (*Scruper, error) {
+	l := launcher.New().
+		Headless(false).
+		Devtools(true)
+	defer l.Cleanup()
+
+	url := l.MustLaunch()
+	browser := rod.New().
+		ControlURL(url).
+		Trace(true).
+		MustConnect()
+
+	return &Scruper{browser: browser}, nil
+}
+
+func (s *Scruper) Close() {
+	s.browser.Close()
 }
 
 // login to VNS by login and password from config.
