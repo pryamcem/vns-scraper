@@ -5,7 +5,7 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Short: "Simple VNS scruper and test completer.",
+	Short: "Simple VNS scraper and test completer.",
 }
 
 // TODO: provide better error handling.

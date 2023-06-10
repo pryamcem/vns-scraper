@@ -7,7 +7,7 @@ import (
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/pryamcem/vns-scraper/config"
-	"github.com/pryamcem/vns-scraper/scruper"
+	"github.com/pryamcem/vns-scraper/scraper"
 	"github.com/pryamcem/vns-scraper/storage"
 	"github.com/spf13/cobra"
 )
@@ -46,11 +46,11 @@ func pass(_ *cobra.Command, args []string) {
 
 	page := browser.MustPage(link)
 
-	err = scruper.Login(page, config)
+	err = scraper.Login(page, config)
 	if err != nil {
 		log.Fatalln("Can't login: ", err)
 	}
-	testNum := scruper.MustFindTestNum(page)
+	testNum := scraper.MustFindTestNum(page)
 	err = storage.CreateTableByNum(testNum)
 	if err != nil {
 		log.Fatalf("Cant't create table schema: %v", err)
@@ -62,28 +62,28 @@ func pass(_ *cobra.Command, args []string) {
 		//Go to the test link
 		page.MustWaitLoad().MustNavigate(link)
 
-		err := scruper.StartNextAttempt(page)
+		err := scraper.StartNextAttempt(page)
 		if err != nil {
 			log.Fatalln("Error while startin new attempt:", err)
 		}
 
 		isLastPage := false
 		for !isLastPage {
-			err = scruper.MakeTest(page, testNum, *storage)
+			err = scraper.MakeTest(page, testNum, *storage)
 			if err != nil {
 				log.Fatalln("Error while making test: ", err)
 			}
-			_, isLastPage = scruper.FinishTest(page)
+			_, isLastPage = scraper.FinishTest(page)
 		}
 
-		if scruper.IsTestSuccessful(page) {
+		if scraper.IsTestSuccessful(page) {
 			i++
 			if i == trustValue {
 				break
 			}
 		} else {
 			i = 0
-			data, err := scruper.ParseAnswers(page)
+			data, err := scraper.ParseAnswers(page)
 			if err != nil {
 				log.Fatalln("Can't parse answers:", err)
 			}

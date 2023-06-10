@@ -7,7 +7,7 @@ import (
 	"github.com/go-rod/rod"
 	"github.com/go-rod/rod/lib/launcher"
 	"github.com/pryamcem/vns-scraper/config"
-	"github.com/pryamcem/vns-scraper/scruper"
+	"github.com/pryamcem/vns-scraper/scraper"
 	"github.com/pryamcem/vns-scraper/storage"
 	"github.com/spf13/cobra"
 )
@@ -44,12 +44,12 @@ func scan(_ *cobra.Command, args []string) {
 
 	page := browser.MustPage(link)
 
-	err = scruper.Login(page, config)
+	err = scraper.Login(page, config)
 	if err != nil {
 		log.Fatalln("Can't login: ", err)
 	}
 
-	testNum := scruper.MustFindTestNum(page)
+	testNum := scraper.MustFindTestNum(page)
 	log.Println(testNum)
 
 	err = storage.CreateTableByNum(testNum)
@@ -57,8 +57,8 @@ func scan(_ *cobra.Command, args []string) {
 		log.Fatalf("Cant't create table schema: %v", err)
 	}
 
-	//urls, err := scruper.GetLinksByTitle(page, linksTitle)
-	urls := scruper.FindTests(page)
+	//urls, err := scraper.GetLinksByTitle(page, linksTitle)
+	urls := scraper.FindTests(page)
 	if err != nil {
 		log.Fatalf("Can't get number of urls: %v", err)
 	}
@@ -69,7 +69,7 @@ func scan(_ *cobra.Command, args []string) {
 		if err != nil {
 			log.Fatalf("Can't navigate to results link: %v", err)
 		}
-		data, err := scruper.ParseAnswers(page)
+		data, err := scraper.ParseAnswers(page)
 		if err != nil {
 			log.Fatalln("Can't parse answers:", err)
 		}

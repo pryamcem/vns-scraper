@@ -1,4 +1,4 @@
-NAME = vns-scruper
+NAME = vns-scraper
 build:
 	@go build -o bin/$(NAME)
 
