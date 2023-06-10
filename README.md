@@ -25,4 +25,4 @@ vns-scraper scan [link to a test from VNS]
 If you have the passed test by yourself and you want to save the correct answers to storage, you can use this command.
 
 ## How it works
-It uses [go-rod](https://github.com/go-rod/rod) library which uses (Chrome DevTools Protocol)[https://chromedevtools.github.io/devtools-protocol/] to render web pages. When the page was rendered it starts a new attempt at a test. It scans all questions and tries to find answers from storage and clicks to It on a test.  If the test was unsuccessful it scans all right answers and stores them in storage. Then starts a new attempt while the test will not complete successfully.
+It uses [go-rod](https://github.com/go-rod/rod) library which uses [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/) to render web pages. When the page was rendered it starts a new attempt at a test. It scans all questions and tries to find answers from storage and clicks to It on a test.  If the test was unsuccessful it scans all right answers and stores them in storage. Then starts a new attempt while the test will not complete successfully.
